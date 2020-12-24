@@ -631,9 +631,11 @@ class LightConvEncoderLayer(nn.Module):
         )
 
         if args.encoder_glu:
+            self.conv1 = nn.Conv2d(self.embed_dim,2*self.conv_dim,kernel_size=3)
             self.linear1 = Linear(self.embed_dim, 2 * self.conv_dim)
             self.act = nn.GLU()
         else:
+            self.conv1 = nn.Conv2d(self.embed_dim,self.conv_dim,kernel_size=3)
             self.linear1 = Linear(self.embed_dim, self.conv_dim)
             self.act = None
         if args.encoder_conv_type == "lightweight":
@@ -685,7 +687,8 @@ class LightConvEncoderLayer(nn.Module):
         residual = x
         x = self.maybe_layer_norm(0, x, before=True)
         x = self.input_dropout_module(x)
-        x = self.linear1(x)
+        # x = self.linear1(x)
+        x = self.conv1(x)
         if self.act is not None:
             x = self.act(x)
         if encoder_padding_mask is not None:
@@ -740,9 +743,11 @@ class LightConvDecoderLayer(nn.Module):
         self.conv_dim = args.decoder_conv_dim
         if args.decoder_glu:
             self.linear1 = Linear(self.embed_dim, 2 * self.conv_dim)
+            self.conv1 = nn.Conv2d(self.embed_dim,2*self.conv_dim,kernel_size=3)
             self.act = nn.GLU()
         else:
             self.linear1 = Linear(self.embed_dim, self.conv_dim)
+            self.conv1 = nn.Conv2d(self.embed_dim,2*self.conv_dim,kernel_size=3)
             self.act = None
         if args.decoder_conv_type == "lightweight":
             self.conv = LightweightConv(
@@ -824,7 +829,8 @@ class LightConvDecoderLayer(nn.Module):
                 incremental_state = {}
             self.conv._set_input_buffer(incremental_state, prev_conv_state)
         x = self.input_dropout_module(x)
-        x = self.linear1(x)
+        # x = self.linear1(x)
+        x = self.conv1(x)
         if self.act is not None:
             x = self.act(x)
         x = self.conv(x, incremental_state=incremental_state)
